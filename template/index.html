@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tunemap — Song Recommender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0D0D0D;
+      --surface:  #161616;
+      --card:     #1C1C1C;
+      --border:   #2E2E2E;
+      --accent:   #C8F135;
+      --accent-dim: rgba(200,241,53,0.12);
+      --text:     #F0EDE6;
+      --muted:    #7A7A7A;
+      --danger:   #FF5F57;
+      --radius:   10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 40px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(13,13,13,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    .nav-status {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 40px 56px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 300;
+      max-width: 480px;
+      line-height: 1.7;
+    }
+
+    /* ── SEARCH FORM ── */
+    .search-section {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 40px 60px;
+    }
+
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input[type="text"] {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      padding: 12px 16px;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    input[type="text"]::placeholder {
+      color: #444;
+    }
+
+    .search-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: #0D0D0D;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.12s;
+      letter-spacing: 0.02em;
+    }
+
+    .search-btn:hover  { opacity: 0.88; }
+    .search-btn:active { transform: scale(0.99); }
+
+    .search-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── LOADER ── */
+    .loader {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 18px;
+    }
+
+    .loader.visible { display: flex; }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ERROR ── */
+    .error-box {
+      display: none;
+      background: rgba(255,95,87,0.08);
+      border: 1px solid rgba(255,95,87,0.3);
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: var(--danger);
+      font-size: 14px;
+      margin-top: 16px;
+    }
+
+    .error-box.visible { display: block; }
+
+    /* ── RESULTS ── */
+    .results-section {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    .results-header h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .results-count {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── TRACK CARD ── */
+    .track-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 10px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.35s ease, transform 0.35s ease,
+                  border-color 0.2s, background 0.2s;
+    }
+
+    .track-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .track-card:hover {
+      border-color: #3D3D3D;
+      background: #1F1F1F;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+
+    .track-rank {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      min-width: 24px;
+      padding-top: 3px;
+    }
+
+    .track-info { flex: 1; }
+
+    .track-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .track-artist {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .track-genre {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #444;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      align-self: flex-start;
+    }
+
+    /* ── MATCH BAR (signature element) ── */
+    .match-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .match-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .match-track {
+      flex: 1;
+      height: 4px;
+      background: var(--card);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .match-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .match-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── FEATURE PILLS ── */
+    .feature-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .feature-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 9px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .feature-pill span:first-child {
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 10px;
+    }
+
+    .feature-pill span:last-child {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      display: none;
+    }
+
+    .empty-state.visible { display: block; }
+
+    .empty-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 15px;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    /* ── AUTOCOMPLETE DROPDOWN ── */
+    .field { position: relative; }   /* anchor for absolute dropdown */
+
+    .ac-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: #202020;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+      z-index: 200;
+      overflow: hidden;
+      display: none;
+    }
+
+    .ac-dropdown.open { display: block; }
+
+    .ac-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid #2A2A2A;
+      transition: background 0.12s;
+    }
+
+    .ac-item:last-child { border-bottom: none; }
+
+    .ac-item:hover,
+    .ac-item.ac-active {
+      background: var(--accent-dim);
+    }
+
+    .ac-item-track {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ac-item-artist {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ac-item-track mark {
+      background: none;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      nav       { padding: 16px 20px; }
+      .hero     { padding: 50px 20px 40px; }
+      .search-section, .results-section { padding-left: 20px; padding-right: 20px; }
+      .search-row { grid-template-columns: 1fr; }
+      .feature-grid { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .track-card { transition: none; }
+      .match-fill { transition: none; }
+      .spinner    { animation: none; }
+      .status-indicator { animation: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">
+      <span class="logo-dot"></span>
+      Tunemap
+    </div>
+    <div class="nav-status" id="nav-status">
+      <span class="status-indicator"></span>
+      Spotify connected
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <p class="hero-eyebrow">Personalised to your taste</p>
+    <h1>Find songs that fit<br/><em>exactly</em> like yours.</h1>
+    <p>Weighted to your listening habits. Enter any track and we'll surface the closest sonic matches from across genres.</p>
+  </section>
+
+  <!-- SEARCH -->
+  <section class="search-section">
+    <div class="search-card">
+      <div class="search-row">
+        <div class="field">
+          <label for="track-input">Track name</label>
+          <input type="text" id="track-input" placeholder="e.g. Creep" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-controls="ac-list" aria-expanded="false"/>
+          <div class="ac-dropdown" id="ac-list" role="listbox"></div>
+        </div>
+        <div class="field">
+          <label for="artist-input">Artist</label>
+          <input type="text" id="artist-input" placeholder="e.g. Radiohead" autocomplete="off" spellcheck="false"/>
+        </div>
+      </div>
+      <button class="search-btn" id="search-btn">Find similar tracks</button>
+
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <span>Analysing audio features…</span>
+      </div>
+
+      <div class="error-box" id="error-box"></div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="results-section" id="results-section" style="display:none">
+    <div class="results-header">
+      <h2>Recommended for you</h2>
+      <span class="results-count" id="results-count"></span>
+    </div>
+    <div id="results-list"></div>
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🎵</div>
+      <p>No matches found. Try a different track or check the spelling.</p>
+    </div>
+  </section>
+
+  <script>
+    const trackInput  = document.getElementById("track-input");
+    const artistInput = document.getElementById("artist-input");
+    const searchBtn   = document.getElementById("search-btn");
+    const loader      = document.getElementById("loader");
+    const errorBox    = document.getElementById("error-box");
+    const resultsSection = document.getElementById("results-section");
+    const resultsList = document.getElementById("results-list");
+    const resultsCount = document.getElementById("results-count");
+    const emptyState  = document.getElementById("empty-state");
+
+    // Feature labels shown in each card
+    const FEATURE_LABELS = {
+      danceability:     "Dance",
+      energy:           "Energy",
+      valence:          "Mood",
+      acousticness:     "Acoustic",
+      speechiness:      "Speech",
+      instrumentalness: "Instrumental",
+      liveness:         "Live",
+      tempo:            "Tempo",
+    };
+
+    // Allow Enter key in either input
+    [trackInput, artistInput].forEach(el => {
+      el.addEventListener("keydown", e => {
+        // For trackInput, arrow/escape/enter are handled by handleAcKeys first
+        if (el === trackInput && acList.classList.contains("open") && acActiveIdx >= 0) return;
+        if (e.key === "Enter") {
+          closeDropdown();
+          doSearch();
+        }
+      });
+    });
+
+    searchBtn.addEventListener("click", doSearch);
+
+    function setLoading(on) {
+      searchBtn.disabled = on;
+      loader.classList.toggle("visible", on);
+    }
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.classList.add("visible");
+    }
+
+    function clearError() {
+      errorBox.textContent = "";
+      errorBox.classList.remove("visible");
+    }
+
+    async function doSearch() {
+      const track  = trackInput.value.trim();
+      const artist = artistInput.value.trim();
+
+      if (!track || !artist) {
+        showError("Enter both a track name and an artist to search.");
+        return;
+      }
+
+      clearError();
+      resultsList.innerHTML = "";
+      resultsSection.style.display = "none";
+      emptyState.classList.remove("visible");
+      setLoading(true);
+
+      try {
+        const params = new URLSearchParams({ track_name: track, artists: artist });
+        const res    = await fetch(`/search?${params}`);
+        const data   = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || `Error ${res.status} — try a different track.`);
+          return;
+        }
+
+        renderResults(data);
+      } catch (err) {
+        showError("Couldn't reach the server. Check your connection and try again.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderResults(tracks) {
+      resultsSection.style.display = "block";
+
+      if (!tracks.length) {
+        emptyState.classList.add("visible");
+        resultsCount.textContent = "";
+        return;
+      }
+
+      resultsCount.textContent = `${tracks.length} track${tracks.length !== 1 ? "s" : ""}`;
+
+      // Compute max distance for relative match % (lower distance = better match)
+      const distances = tracks.map(t => t.distance);
+      const maxDist   = Math.max(...distances) || 1;
+
+      tracks.forEach((track, i) => {
+        const card = buildCard(track, i + 1, maxDist);
+        resultsList.appendChild(card);
+
+        // Stagger entrance animation
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            card.classList.add("visible");
+            // Animate match bar after card appears
+            setTimeout(() => {
+              const fill = card.querySelector(".match-fill");
+              const pct  = matchPercent(track.distance, maxDist);
+              fill.style.width = pct + "%";
+            }, 80);
+          }, i * 60);
+        });
+      });
+    }
+
+    function matchPercent(distance, maxDist) {
+      // Invert: distance 0 → 100%, distance maxDist → ~10%
+      return Math.round(10 + (1 - distance / maxDist) * 90);
+    }
+
+    function buildCard(track, rank, maxDist) {
+      const pct  = matchPercent(track.distance, maxDist);
+      const card = document.createElement("div");
+      card.className = "track-card";
+
+      // Feature pills (all except 'distance' and metadata cols)
+      const featKeys = Object.keys(FEATURE_LABELS);
+      const pillsHTML = featKeys
+        .filter(k => track[k] !== undefined)
+        .map(k => {
+          const val = typeof track[k] === "number"
+            ? (k === "tempo"
+                ? Math.round(track[k] * 220)  // undo normalisation for display
+                : (track[k] * 100).toFixed(0) + "%")
+            : track[k];
+          return `<div class="feature-pill">
+            <span>${FEATURE_LABELS[k]}</span>
+            <span>${val}</span>
+          </div>`;
+        }).join("");
+
+      card.innerHTML = `
+        <div class="card-top">
+          <span class="track-rank">${String(rank).padStart(2, "0")}</span>
+          <div class="track-info">
+            <div class="track-name">${escHtml(track.track_name)}</div>
+            <div class="track-artist">${escHtml(track.artists)}</div>
+          </div>
+          <span class="track-genre">${escHtml(track.track_genre || "")}</span>
+        </div>
+        <div class="match-bar-wrap">
+          <span class="match-label">Match</span>
+          <div class="match-track">
+            <div class="match-fill" style="width:0%"></div>
+          </div>
+          <span class="match-value">${pct}%</span>
+        </div>
+      `;
+
+      return card;
+    }
+
+    // ── AUTOCOMPLETE ──────────────────────────────────────────────────────────
+    const acList      = document.getElementById("ac-list");
+    let acItems       = [];      // current suggestion objects
+    let acActiveIdx   = -1;      // keyboard-highlighted index
+    let acDebounce    = null;
+
+    trackInput.addEventListener("input", () => {
+      clearTimeout(acDebounce);
+      const q = trackInput.value.trim();
+      if (q.length < 1) { closeDropdown(); return; }
+      acDebounce = setTimeout(() => fetchSuggestions(q), 160);
+    });
+
+    trackInput.addEventListener("keydown", handleAcKeys);
+
+    // Close when clicking outside
+    document.addEventListener("pointerdown", e => {
+      if (!acList.contains(e.target) && e.target !== trackInput) closeDropdown();
+    });
+
+    function handleAcKeys(e) {
+      if (!acList.classList.contains("open")) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActive(Math.min(acActiveIdx + 1, acItems.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActive(Math.max(acActiveIdx - 1, 0));
+      } else if (e.key === "Enter" && acActiveIdx >= 0) {
+        e.stopImmediatePropagation();        // prevent doSearch from firing twice
+        selectItem(acItems[acActiveIdx]);
+      } else if (e.key === "Escape") {
+        closeDropdown();
+      }
+    }
+
+    async function fetchSuggestions(q) {
+      try {
+        const res  = await fetch(`/autocomplete?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        renderDropdown(data, q);
+      } catch { closeDropdown(); }
+    }
+
+    function renderDropdown(items, query) {
+      acItems     = items;
+      acActiveIdx = -1;
+      acList.innerHTML = "";
+
+      if (!items.length) { closeDropdown(); return; }
+
+      items.forEach((item, i) => {
+        const el = document.createElement("div");
+        el.className    = "ac-item";
+        el.role         = "option";
+        el.dataset.idx  = i;
+
+        // Highlight matched substring in track name
+        const highlighted = highlightMatch(escHtml(item.track_name), query);
+
+        el.innerHTML = `
+          <span class="ac-item-track">${highlighted}</span>
+          <span class="ac-item-artist">${escHtml(item.artists)}</span>
+        `;
+
+        el.addEventListener("pointerdown", e => {
+          e.preventDefault();              // keep focus on input
+          selectItem(item);
+        });
+
+        acList.appendChild(el);
+      });
+
+      acList.classList.add("open");
+      trackInput.setAttribute("aria-expanded", "true");
+    }
+
+    function setActive(idx) {
+      acActiveIdx = idx;
+      acList.querySelectorAll(".ac-item").forEach((el, i) => {
+        el.classList.toggle("ac-active", i === idx);
+      });
+    }
+
+    function selectItem(item) {
+      trackInput.value  = item.track_name;
+      artistInput.value = item.artists;
+      closeDropdown();
+      // Move focus to the button so user can hit Enter naturally
+      searchBtn.focus();
+    }
+
+    function closeDropdown() {
+      acList.classList.remove("open");
+      acList.innerHTML = "";
+      acItems     = [];
+      acActiveIdx = -1;
+      trackInput.setAttribute("aria-expanded", "false");
+    }
+
+    function highlightMatch(safeHtml, query) {
+      // Case-insensitive highlight of the typed query inside the escaped string
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return safeHtml.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
